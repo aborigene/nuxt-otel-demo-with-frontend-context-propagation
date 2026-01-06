@@ -23,5 +23,8 @@ logs
 .env.*
 !.env.example
 
+# Dynatrace config (contains sensitive monitoring IDs)
+dynatrace.config.ts
+
 # Other files
 output.txt

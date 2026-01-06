@@ -15,16 +15,28 @@
 <script setup>
 import { ref } from 'vue';
 
-// Add Dynatrace RUM script to head
-useHead({
-  script: [
-    {
-      src: 'https://js-cdn.dynatrace.com/jstag/148709fdc4b/bf15468yso/73b6dcc51e1153bc_complete.js',
-      crossorigin: 'anonymous',
-      type: 'text/javascript'
-    }
-  ]
-});
+// Import Dynatrace RUM configuration
+// This file is gitignored - copy from dynatrace.config.example.ts
+let dynatraceConfig;
+try {
+  dynatraceConfig = await import('~/dynatrace.config').then(m => m.dynatraceConfig);
+} catch (error) {
+  console.warn('Dynatrace config not found. Copy dynatrace.config.example.ts to dynatrace.config.ts');
+  dynatraceConfig = { enabled: false, scriptUrl: '' };
+}
+
+// Add Dynatrace RUM script to head if enabled
+if (dynatraceConfig.enabled && dynatraceConfig.scriptUrl && dynatraceConfig.scriptUrl !== 'YOUR_DYNATRACE_RUM_SCRIPT_URL') {
+  useHead({
+    script: [
+      {
+        src: dynatraceConfig.scriptUrl,
+        crossorigin: 'anonymous',
+        type: 'text/javascript'
+      }
+    ]
+  });
+}
 
 const message = ref('');
 const hash = ref('');
