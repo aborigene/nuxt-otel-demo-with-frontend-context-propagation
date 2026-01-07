@@ -1,14 +1,172 @@
-# What is this Repository
+# OpenTelemetry + Dynatrace Integration for Nuxt
 
-This is a simple Nuxt application, created to demonstrate how to propagate context from FrontEnd to BackEnd with OpenTelemetry and Dynatrace. This is a challenge because the standard Nitro instrumentations DO NOT PROPAGATE context. So event though frontend is adding the proper TRACEPARENT header, it is being completely ignored by the backend, thus creating a new context.
+This repository demonstrates end-to-end distributed tracing between a Nuxt application frontend (using Dynatrace RUM) and backend (using OpenTelemetry) with **proper trace context propagation**.
 
-Follow the instructions below if you want to replicate this instrumentation to your own Nuxt apps. In case you want to test this with this sample app just clone this repo and start the application.
+## 🎯 The Challenge
 
-The app is very simple and is composed of a form where a message is POSTED and the backend returns its hash.
+Standard Nitro instrumentations **DO NOT PROPAGATE** trace context from frontend to backend. Even though the frontend sends the proper `traceparent` header, it's completely ignored by the backend, creating disconnected traces.
 
-# OpenTelemetry + Dynatrace Integration Implementation Guide
+This repository shows the problem and provides a working solution.
 
-This guide provides step-by-step instructions to implement end-to-end distributed tracing between your Nuxt application frontend (using Dynatrace RUM) and backend (using OpenTelemetry) with proper trace context propagation.
+---
+
+## 📚 Video Workshop - Branch Walkthrough
+
+This repository is structured with different branches to demonstrate the progressive implementation of monitoring and the challenges faced. Use these branches for workshops or learning:
+
+### Branch Structure
+
+| Branch | Description | Status |
+|--------|-------------|--------|
+| **main** | ✅ Complete solution with working trace context propagation | 🎯 **Production Ready** |
+| **plain_nuxt_app** | Plain Nuxt 4 app with no instrumentation | 🏁 Starting point |
+| **dynatrace_rum_nuxt** | Dynatrace RUM only - frontend monitoring | ⚠️ Backend not traced |
+| **nuxt_open_telemetry** | RUM + Basic OpenTelemetry (automatic) | ❌ **Broken** - Traces disconnected |
+
+### Workshop Walkthrough
+
+Follow this sequence to understand the implementation journey:
+
+#### 1. **Start: plain_nuxt_app** 🏁
+```bash
+git checkout plain_nuxt_app
+npm install
+npm run dev
+```
+
+**What you'll see:**
+- Simple Nuxt application
+- Hash API endpoint
+- No monitoring or tracing
+- **Problem:** Zero visibility into application behavior
+
+---
+
+#### 2. **Add Frontend Monitoring: dynatrace_rum_nuxt** 👀
+```bash
+git checkout dynatrace_rum_nuxt
+cp dynatrace.config.example.ts dynatrace.config.ts
+# Edit dynatrace.config.ts with your RUM script URL
+npm run dev
+```
+
+**What you'll see:**
+- ✅ Frontend user sessions in Dynatrace
+- ✅ Browser performance metrics
+- ✅ Client-side errors captured
+- ❌ **Problem:** Backend API calls are invisible - no server-side tracing
+
+**In Dynatrace:**
+- Navigate to: Applications & Microservices → Web applications
+- You'll see user actions but backend calls have no trace data
+
+---
+
+#### 3. **Add Backend Tracing: nuxt_open_telemetry** 🔧
+```bash
+git checkout nuxt_open_telemetry
+# Create .env file with OTLP endpoint and API token
+npm run dev
+```
+
+**Configuration:**
+```bash
+# .env
+OTEL_SERVICE_NAME=otel-nuxt-demo
+OTEL_EXPORTER_OTLP_ENDPOINT=https://YOUR_TENANT.live.dynatrace.com/api/v2/otlp
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Api-Token YOUR_API_TOKEN
+```
+
+**What you'll see:**
+- ✅ Frontend RUM traces in Dynatrace
+- ✅ Backend OpenTelemetry spans in Dynatrace
+- ❌ **CRITICAL PROBLEM:** Frontend and backend traces are **DISCONNECTED**
+
+**The Bug:**
+```
+Frontend Trace ID: 909345e985cb1d64cab2231a9fd2459d
+Backend Trace ID:  070332cf16ee32a83fd0665cb5bf1f39  ← Different!
+```
+
+**Why:** NitroInstrumentation doesn't properly extract `traceparent` header
+
+**In Server Logs:**
+```
+📥 Incoming traceparent: 00-909345e985cb1d64cab2231a9fd2459d-...
+❌ MISMATCH! Backend created NEW trace instead of continuing frontend trace
+```
+
+---
+
+#### 4. **Solution: main** ✅
+```bash
+git checkout main
+cp dynatrace.config.example.ts dynatrace.config.ts
+# Edit dynatrace.config.ts
+# Create .env file
+npm run dev
+```
+
+**What you'll see:**
+- ✅ Frontend RUM traces
+- ✅ Backend OpenTelemetry spans
+- ✅ **CONNECTED** - Same Trace ID across frontend and backend!
+- ✅ End-to-end distributed tracing working perfectly
+
+**The Fix:**
+```
+Frontend Trace ID: 909345e985cb1d64cab2231a9fd2459d
+Backend Trace ID:  909345e985cb1d64cab2231a9fd2459d  ← SAME! ✨
+```
+
+**In Server Logs:**
+```
+📥 Incoming traceparent: 00-909345e985cb1d64cab2231a9fd2459d-...
+✅ Created span with trace ID: 909345e985cb1d64cab2231a9fd2459d
+🎉 SUCCESS! Span trace ID matches incoming trace ID!
+```
+
+**How it works:**
+- Manual `traceparent` header parsing
+- Manual span context creation
+- Disabled NitroInstrumentation (to prevent conflicts)
+- Custom Nitro plugin with proper context propagation
+
+---
+
+## 🎬 Using This for Presentations
+
+### Quick Demo Script
+
+1. **Show the problem** (5 min)
+   - Checkout `nuxt_open_telemetry`
+   - Make requests, show disconnected traces in Dynatrace
+   - Show mismatched Trace IDs in console
+
+2. **Explain the solution** (10 min)
+   - Checkout `main`
+   - Walk through `server/plugins/tracecontext.ts`
+   - Explain manual traceparent parsing
+   - Show proper span context creation
+
+3. **Demo working solution** (5 min)
+   - Make requests, show connected traces in Dynatrace
+   - Show matching Trace IDs in console
+   - Navigate distributed trace in Dynatrace UI
+
+### Workshop Topics to Cover
+
+- W3C Trace Context standard (`traceparent` header format)
+- OpenTelemetry span context and propagation
+- Nitro/Nuxt server-side architecture
+- Why automatic instrumentation fails in this environment
+- Manual instrumentation patterns
+
+---
+
+## 📖 Complete Implementation Guide
+
+The rest of this document provides detailed instructions for implementing this solution in your own applications.
 
 ## Table of Contents
 
