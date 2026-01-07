@@ -6,7 +6,128 @@ Follow the instructions below if you want to replicate this instrumentation to y
 
 The app is very simple and is composed of a form where a message is POSTED and the backend returns its hash.
 
-# OpenTelemetry + Dynatrace Integration Implementation Guide
+# Nuxt Application with Dynatrace RUM + Basic OpenTelemetry
+
+This branch demonstrates the **problem** with basic OpenTelemetry integration using @scayle/nuxt-opentelemetry's automatic instrumentation.
+
+## What's Included
+
+- ✅ Dynatrace RUM script integration in frontend
+- ✅ OpenTelemetry SDK with OTLP exporter
+- ✅ Automatic NitroInstrumentation enabled
+- ❌ **Trace context propagation BROKEN** - Frontend and backend traces are disconnected
+
+## The Problem
+
+While both frontend (RUM) and backend (OpenTelemetry) are instrumented, **traces are disconnected**:
+
+- Frontend RUM creates traces with Trace ID: `ABC123...`
+- Backend OpenTelemetry creates **NEW** traces with different Trace ID: `DEF456...`
+- The `traceparent` header is sent but **not properly extracted** by NitroInstrumentation
+- W3CTraceContextPropagator doesn't work in the Nitro environment
+
+### What You'll See in Dynatrace
+
+- ✅ Frontend user sessions and actions (RUM)
+- ✅ Backend API spans (OpenTelemetry)
+- ❌ **NO connection** between frontend and backend spans
+- ❌ Each backend request starts a **new trace** instead of continuing the frontend trace
+
+## Setup
+
+### 1. Create Dynatrace Configuration
+
+```bash
+cp dynatrace.config.example.ts dynatrace.config.ts
+```
+
+Edit `dynatrace.config.ts` with your Dynatrace RUM script URL.
+
+### 2. Create Environment Variables
+
+Create `.env` file:
+
+```bash
+# OpenTelemetry Configuration
+OTEL_SERVICE_NAME=otel-nuxt-demo
+OTEL_EXPORTER_OTLP_ENDPOINT=https://YOUR_TENANT.live.dynatrace.com/api/v2/otlp
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Api-Token YOUR_API_TOKEN
+```
+
+### 3. Run the Application
+
+```bash
+npm install
+npm run dev
+```
+
+### 4. Observe the Problem
+
+Make a request from the browser and check server logs:
+
+```
+📥 Incoming traceparent: 00-909345e985cb1d64cab2231a9fd2459d-fa583390dc4a57f0-01
+📥 Incoming Trace ID: 909345e985cb1d64cab2231a9fd2459d
+❌ MISMATCH! Backend created trace ID: 070332cf16ee32a83fd0665cb5bf1f39
+```
+
+**The backend span has a DIFFERENT trace ID!**
+
+## Why This Happens
+
+The @scayle/nuxt-opentelemetry package uses NitroInstrumentation which:
+
+1. ✅ Automatically creates spans for HTTP requests
+2. ✅ Exports to OTLP endpoint
+3. ❌ **Doesn't properly extract trace context** from the `traceparent` header
+4. ❌ W3CTraceContextPropagator.extract() returns invalid span context in Nitro environment
+
+### Evidence
+
+Check the spans in Dynatrace:
+- Frontend RUM trace: `909345e985cb1d64cab2231a9fd2459d`
+- Backend OTel trace: `070332cf16ee32a83fd0665cb5bf1f39` ← **Different!**
+
+## What's Needed
+
+To fix this, we need to:
+1. Disable automatic NitroInstrumentation
+2. Manually parse the `traceparent` header
+3. Create spans with the correct parent context
+4. Use manual instrumentation
+
+See the `main` branch for the working solution with manual trace context propagation.
+
+## Configuration
+
+### nuxt.config.ts
+
+```typescript
+export default defineNuxtConfig({
+  modules: ['@scayle/nuxt-opentelemetry'],
+  opentelemetry: {
+    enabled: true,
+    // Using automatic initialization - THIS DOESN'T WORK for trace context
+    requestHeaders: ['traceparent', 'tracestate', 'x-dtpc'],
+    responseHeaders: ['traceparent', 'tracestate'],
+  },
+})
+```
+
+### Environment Variables
+
+- `OTEL_SERVICE_NAME` - Service name in Dynatrace
+- `OTEL_EXPORTER_OTLP_ENDPOINT` - Dynatrace OTLP endpoint
+- `OTEL_EXPORTER_OTLP_HEADERS` - API token
+
+## Next Steps
+
+See the **main** branch for the complete solution with:
+- ✅ Manual trace context propagation
+- ✅ Proper parent-child span relationships
+- ✅ End-to-end distributed tracing
+- ✅ PathReplace support for span name normalization
+
 
 This guide provides step-by-step instructions to implement end-to-end distributed tracing between your Nuxt application frontend (using Dynatrace RUM) and backend (using OpenTelemetry) with proper trace context propagation.
 

@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   modules: ['@scayle/nuxt-opentelemetry'],
   opentelemetry: {
     enabled: true,
-    disableAutomaticInitialization: true,
+    // Using automatic initialization (this doesn't work properly for trace context)
     requestHeaders: ['x-user-agent', 'x-request-time', 'x-client-id', 'accept', 'content-type', 'user-agent', 'authorization', 'traceparent', 'x-dtpc'],
     responseHeaders: ['content-type', 'x-response-time']
   },
