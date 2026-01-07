@@ -15,29 +15,6 @@
 <script setup>
 import { ref } from 'vue';
 
-// Import Dynatrace RUM configuration
-// This file is gitignored - copy from dynatrace.config.example.ts
-let dynatraceConfig;
-try {
-  dynatraceConfig = await import('~/dynatrace.config').then(m => m.dynatraceConfig);
-} catch (error) {
-  console.warn('Dynatrace config not found. Copy dynatrace.config.example.ts to dynatrace.config.ts');
-  dynatraceConfig = { enabled: false, scriptUrl: '' };
-}
-
-// Add Dynatrace RUM script to head if enabled
-if (dynatraceConfig.enabled && dynatraceConfig.scriptUrl && dynatraceConfig.scriptUrl !== 'YOUR_DYNATRACE_RUM_SCRIPT_URL') {
-  useHead({
-    script: [
-      {
-        src: dynatraceConfig.scriptUrl,
-        crossorigin: 'anonymous',
-        type: 'text/javascript'
-      }
-    ]
-  });
-}
-
 const message = ref('');
 const hash = ref('');
 
