@@ -10,7 +10,7 @@ This repository shows the problem and provides a working solution.
 
 ---
 
-## 📚 Video Workshop - Branch Walkthrough
+## 📚 Workshop - Branch Walkthrough
 
 This repository is structured with different branches to demonstrate the progressive implementation of monitoring and the challenges faced. Use these branches for workshops or learning:
 
@@ -57,7 +57,9 @@ npm run dev
 - ❌ **Problem:** Backend API calls are invisible - no server-side tracing
 
 **In Dynatrace:**
-- Navigate to: Applications & Microservices → Web applications
+- Click on Apps
+- Search from Frontend
+- Navigate to your created Agentless RUM app
 - You'll see user actions but backend calls have no trace data
 
 ---
@@ -66,6 +68,7 @@ npm run dev
 ```bash
 git checkout nuxt_open_telemetry
 # Create .env file with OTLP endpoint and API token
+# Copy agentless rum configuration from the other branch
 npm run dev
 ```
 
@@ -80,7 +83,7 @@ OTEL_EXPORTER_OTLP_HEADERS=Authorization=Api-Token YOUR_API_TOKEN
 **What you'll see:**
 - ✅ Frontend RUM traces in Dynatrace
 - ✅ Backend OpenTelemetry spans in Dynatrace
-- ❌ **CRITICAL PROBLEM:** Frontend and backend traces are **DISCONNECTED**
+- ❌ **CRITICAL PROBLEM:** Frontend and backend traces are **DISCONNECTED**, they have different traceids
 
 **The Bug:**
 ```
