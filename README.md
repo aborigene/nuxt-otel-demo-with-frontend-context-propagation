@@ -45,8 +45,8 @@ npm run dev
 #### 2. **Add Frontend Monitoring: dynatrace_rum_nuxt** 👀
 ```bash
 git checkout dynatrace_rum_nuxt
-cp dynatrace.config.example.ts dynatrace.config.ts
-# Edit dynatrace.config.ts with your RUM script URL
+cp app/dynatrace.config.example.ts app/dynatrace.config.ts
+# Edit app/dynatrace.config.ts with your RUM script URL
 npm run dev
 ```
 
@@ -67,18 +67,17 @@ npm run dev
 #### 3. **Add Backend Tracing: nuxt_open_telemetry** 🔧
 ```bash
 git checkout nuxt_open_telemetry
-# Create .env file with OTLP endpoint and API token
+# Create .env file from template
+cp .env.example .env
+# Edit .env with your OTLP endpoint and API token
 # Copy agentless rum configuration from the other branch
+cp app/dynatrace.config.example.ts app/dynatrace.config.ts
+# Edit app/dynatrace.config.ts
 npm run dev
 ```
 
 **Configuration:**
-```bash
-# .env
-OTEL_SERVICE_NAME=otel-nuxt-demo
-OTEL_EXPORTER_OTLP_ENDPOINT=https://YOUR_TENANT.live.dynatrace.com/api/v2/otlp
-OTEL_EXPORTER_OTLP_HEADERS=Authorization=Api-Token YOUR_API_TOKEN
-```
+See [Configuration Files](#configuration-files) section for detailed setup instructions.
 
 **What you'll see:**
 - ✅ Frontend RUM traces in Dynatrace
@@ -104,9 +103,10 @@ Backend Trace ID:  070332cf16ee32a83fd0665cb5bf1f39  ← Different!
 #### 4. **Solution: main** ✅
 ```bash
 git checkout main
-cp dynatrace.config.example.ts dynatrace.config.ts
-# Edit dynatrace.config.ts
-# Create .env file
+cp app/dynatrace.config.example.ts app/dynatrace.config.ts
+# Edit app/dynatrace.config.ts
+cp .env.example .env
+# Edit .env with your configuration
 npm run dev
 ```
 
@@ -225,13 +225,13 @@ pnpm add @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-proto @opent
 
 ### 1. Create Dynatrace RUM Configuration
 
-Create your Dynatrace configuration file from the template:
+Create your Dynatrace configuration file from the template in the `/app` directory:
 
 ```bash
-cp dynatrace.config.example.ts dynatrace.config.ts
+cp dynatrace.config.example.ts app/dynatrace.config.ts
 ```
 
-Then edit `dynatrace.config.ts` and update with your actual Dynatrace script URL:
+Then edit `app/dynatrace.config.ts` and update with your actual Dynatrace script URL:
 
 ```typescript
 export const dynatraceConfig = {
@@ -248,9 +248,9 @@ export const dynatraceConfig = {
 2. Select your application (or create a new one)
 3. Click **Setup** or the **...** menu → **Setup**
 4. Copy the complete JavaScript tag URL from the code snippet
-5. Paste it as the `scriptUrl` value in `dynatrace.config.ts`
+5. Paste it as the `scriptUrl` value in `app/dynatrace.config.ts`
 
-**Note:** The `dynatrace.config.ts` file is gitignored to prevent exposing your monitoring IDs. Only the `dynatrace.config.example.ts` template is committed to the repository.
+**Note:** The `app/dynatrace.config.ts` file is gitignored to prevent exposing your monitoring IDs. Only the `app/dynatrace.config.example.ts` template is committed to the repository.
 
 ### 2. Update `nuxt.config.ts`
 
@@ -277,19 +277,41 @@ export default defineNuxtConfig({
 
 ### 3. Create Environment Variables File
 
-Create or update your `.env` file in the project root:
+Create your environment variables file from the template:
 
 ```bash
-# OpenTelemetry Configuration
-OTEL_SERVICE_NAME=your-service-name
+cp .env.example .env
+```
+
+Then edit `.env` and update with your actual Dynatrace OTLP configuration:
+
+```bash
+# Service name that will appear in Dynatrace
+OTEL_SERVICE_NAME=otel-nuxt-demo
+
+# Dynatrace OTLP endpoint - Replace YOUR_TENANT with your tenant ID
 OTEL_EXPORTER_OTLP_ENDPOINT=https://YOUR_TENANT.live.dynatrace.com/api/v2/otlp
+
+# Dynatrace API Token - Replace YOUR_API_TOKEN with your actual token
 OTEL_EXPORTER_OTLP_HEADERS=Authorization=Api-Token YOUR_API_TOKEN
 
-# Optional: PathReplace for span name normalization
-# Use JSON array format: ["pattern", "replacement"]
-# Supports regex patterns (e.g., for locale-based routes)
+# Optional: Path normalization for span names
 NUXT_OPENTELEMETRY_PATH_REPLACE='["^/(en|de|fr)/", "/:locale/"]'
 ```
+
+**To get your OTLP endpoint and API token:**
+1. Your OTLP endpoint format is: `https://{your-environment-id}.live.dynatrace.com/api/v2/otlp`
+2. For API token:
+   - Navigate to Dynatrace → **Access tokens**
+   - Click **Generate new token**
+   - Give it a name (e.g., "OpenTelemetry Ingest")
+   - Enable required scopes:
+     - `openTelemetryTrace.ingest`
+     - `metrics.ingest`
+   - Click **Generate token** and copy it
+3. Paste your values into the `.env` file
+
+**Note:** The `.env` file is gitignored to protect your sensitive credentials. Only `.env.example` is committed to the repository.
 
 **Important**: Replace the following placeholders:
 - `your-service-name` - Your application name (e.g., `my-nuxt-app`)
@@ -322,8 +344,8 @@ NUXT_OPENTELEMETRY_PATH_REPLACE='["/api/internal/", "/api/"]'
 ### 1. Create Dynatrace Configuration (Already Done)
 
 You should have already created this file in the [Configuration Files](#configuration-files) section:
-- `dynatrace.config.ts` - Your actual configuration (gitignored)
-- `dynatrace.config.example.ts` - Template file (committed to repo)
+- `app/dynatrace.config.ts` - Your actual configuration (gitignored)
+- `app/dynatrace.config.example.ts` - Template file (committed to repo)
 
 ### 2. Create Server Plugin: `server/plugins/tracecontext.ts`
 
@@ -589,12 +611,12 @@ Update your `app.vue` file to load the Dynatrace RUM script from your configurat
 
 <script setup lang="ts">
 // Import Dynatrace RUM configuration
-// This file is gitignored - copy from dynatrace.config.example.ts
+// This file is gitignored - copy from app/dynatrace.config.example.ts to app/dynatrace.config.ts
 let dynatraceConfig;
 try {
   dynatraceConfig = await import('~/dynatrace.config').then(m => m.dynatraceConfig);
 } catch (error) {
-  console.warn('Dynatrace config not found. Copy dynatrace.config.example.ts to dynatrace.config.ts');
+  console.warn('Dynatrace config not found. Copy app/dynatrace.config.example.ts to app/dynatrace.config.ts');
   dynatraceConfig = { enabled: false, scriptUrl: '' };
 }
 
@@ -627,7 +649,7 @@ const { data: hash } = await useFetch('/api/hash', {
 ```
 
 **How it works:**
-- The app loads the Dynatrace configuration from `dynatrace.config.ts`
+- The app loads the Dynatrace configuration from `app/dynatrace.config.ts`
 - If the file doesn't exist or is not configured, it gracefully skips RUM initialization
 - The RUM script is only loaded if `enabled: true` and a valid `scriptUrl` is provided
 - This approach keeps sensitive monitoring IDs out of your codebase
@@ -668,9 +690,9 @@ const { data: hash } = await useFetch('/api/hash', {
 ### 1. Verify Configuration Files
 
 Before starting, ensure you have:
-- ✅ Created `dynatrace.config.ts` from the example template
-- ✅ Updated `scriptUrl` in `dynatrace.config.ts` with your actual Dynatrace URL
-- ✅ Set `enabled: true` in `dynatrace.config.ts`
+- ✅ Created `app/dynatrace.config.ts` from the example template
+- ✅ Updated `scriptUrl` in `app/dynatrace.config.ts` with your actual Dynatrace URL
+- ✅ Set `enabled: true` in `app/dynatrace.config.ts`
 - ✅ Created `.env` file with OTLP endpoint and API token
 
 ### 2. Start the Development Server
